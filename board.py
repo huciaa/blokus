@@ -108,8 +108,6 @@ class Board:
                 if field.field_index_x == x and field.field_index_y == y:
                     fields_to_use.append(field)
 
-
-        print(fields_to_use)
         return fields_to_use
 
     def add_block(self, block: Block, x: int, y: int, player: Player):
@@ -136,6 +134,7 @@ class Board:
             self.used_fields.append((field, player))
 
         self.blocks.append(BlockOnBoard(block, x, y))
+        player.increase_points(len(fields_to_use))
         self.draw_board()
         return True
 

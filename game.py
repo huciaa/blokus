@@ -18,4 +18,6 @@ class Player:
         self.points = 0
         self.has_moved = False
 
+    def increase_points(self, points):
+        self.points = self.points + points
 
