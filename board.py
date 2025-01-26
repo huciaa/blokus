@@ -1,6 +1,6 @@
-from field import BlockType, Block, Field
+from field import Block, Field
 from pygame.surface import Surface
-from game import Player
+from game import Player, PlayerType
 import pygame
 
 
@@ -118,11 +118,11 @@ class Board:
         except IllegalMove:
             return False
 
-        if player.has_moved == False:
+        if player.has_moved is False:
             if not self.validate_first_move(block, fields_to_use):
                 return False
         else:
-            if not self.validate_next_move(block, fields_to_use, player):
+            if not self.validate_next_move(fields_to_use, player):
                 return False
 
         for field in fields_to_use:
@@ -140,19 +140,19 @@ class Board:
 
     def validate_first_move(self, block: Block, fields_to_use: list[Field]):
 
-        if block.color == "red":
+        if block.color == PlayerType.RED.value:
             for field in fields_to_use:
                 if field.field_index_x == 0 and field.field_index_y == 0:
                     return True
-        elif block.color == "blue":
+        elif block.color == PlayerType.BLUE.value:
             for field in fields_to_use:
                 if field.field_index_x == 0 and field.field_index_y == 19:
                     return True
-        elif block.color == "green":
+        elif block.color == PlayerType.GREEN.value:
             for field in fields_to_use:
                 if field.field_index_x == 19 and field.field_index_y == 0:
                     return True
-        elif block.color == "yellow":
+        elif block.color == PlayerType.YELLOW.value:
             for field in fields_to_use:
                 if field.field_index_x == 19 and field.field_index_y == 19:
                     return True
@@ -160,7 +160,7 @@ class Board:
             return False
 
     def validate_next_move(
-        self, block: Block, fields_to_use: list[Field], current_player: Player
+        self, fields_to_use: list[Field], current_player: Player
     ):
 
         player_fields = [field for field, player in self.used_fields if player == current_player]

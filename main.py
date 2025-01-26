@@ -1,9 +1,8 @@
 # Example file showing a circle moving on screen
 import pygame
-from pygame import Rect
 from field import BlockType, Block
 from board import Board
-from game import PlayerType, Player
+from game import players, switch_player
 import UI
 
 # pygame setup
@@ -18,6 +17,8 @@ rectangle_draging = False
 
 last_block_x = 999
 last_block_y = 999
+offset_y = 0
+offset_x = 0
 
 rotation = 0
 
@@ -27,15 +28,6 @@ running = True
 dt = 0
 
 board = Board(screen=screen)
-
-
-players: list[Player] = [
-    Player(PlayerType.BLUE),
-    Player(PlayerType.RED),
-    Player(PlayerType.GREEN),
-    Player(PlayerType.YELLOW),
-]
-
 current_player_number = 0
 
 
@@ -57,21 +49,51 @@ while running:
         mouse = pygame.mouse.get_pressed()
         mouse_pos = pygame.mouse.get_pos()
 
+        blocks = list(BlockType)
+        block = Block(
+            blocks[current_block_to_display], cell_size, current_color, rotation
+        )
+        block_rects = block.get_rect()
+        block.draw_block(screen=screen, x=250, y=650)
+
+        ## uses keyboard left right arrows
+        current_block_to_display = UI.switch_current_block(
+            event=event,
+            current_block_to_display=current_block_to_display,
+            nr_of_blocks=len(blocks),
+        )
+
         # rotation button:
         rotation = UI.draw_rotation_button(screen, mouse_pos, event, rotation)
 
-        # block
-        UI.draw_current_block(
-            screen,
-            mouse_pos,
-            event,
-            rotation,
-            current_color,
-            board,
-            current_player,
-            current_block_to_display,
-            cell_size,
-        )
+        for rect in block_rects:
+
+            rect.x = 250 + rect.x
+            rect.y = 650 + rect.y
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if rect.collidepoint(mouse_pos):
+                    rectangle_draging, offset_x, offset_y = UI.handle_click_on_block(
+                        event, rect
+                    )
+            elif event.type == pygame.MOUSEMOTION:
+                if rectangle_draging:
+                    last_block_x, last_block_y = UI.handle_block_in_motion(
+                        screen, event, rect, offset_x, offset_y, cell_size, block
+                    )
+            elif event.type == pygame.MOUSEBUTTONUP:
+
+                if rectangle_draging:
+                    if board.add_block(
+                        block, last_block_x, last_block_y, player=current_player
+                    ):
+
+                        current_player_number = switch_player(
+                            current_player, current_player_number
+                        )
+
+                    rectangle_draging = False
+                    pygame.event.post(pygame.event.Event(pygame.NOEVENT))
 
         # flip() the display to put your work on screen
         pygame.display.flip()

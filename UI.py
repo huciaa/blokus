@@ -1,10 +1,8 @@
 from game import Player
-from field import Block, BlockType
-from board import Board
 from pygame import Surface, Rect
 from pygame.event import Event
+from field import Block
 import pygame
-
 
 
 def draw_score_board(screen: Surface, players: list[Player]):
@@ -35,7 +33,10 @@ def draw_score_board(screen: Surface, players: list[Player]):
     offset = 100
     for player in players_ordered:
         text_surface = my_font.render(
-            f"player {player.player_type.value}: {player.points} ", False, (0, 0, 0)
+            f"{player.player_type.value}: {player.points} ",
+            False,
+            player.player_type.value,
+            "GREY",
         )
         screen.blit(text_surface, (620, offset))
         offset += 100
@@ -44,93 +45,67 @@ def draw_score_board(screen: Surface, players: list[Player]):
 def draw_rotation_button(
     screen: Surface,
     mouse_pos: tuple[int, int],
-    event: Event,
+    current_event: Event,
     current_rotation: int,
 ) -> int:
 
     rotation_button = Rect(100, 650, 100, 20)
     pygame.draw.rect(screen, "green", rotation_button)
     if rotation_button.collidepoint(mouse_pos):
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        if current_event.type == pygame.MOUSEBUTTONDOWN:
             current_rotation += 1
             if current_rotation > 3:
                 current_rotation = 0
 
     return current_rotation
 
-def draw_current_block(
+
+def switch_current_block(
+    event: Event, current_block_to_display: int, nr_of_blocks: int
+) -> int:
+
+    if event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_LEFT:
+            current_block_to_display -= 1
+            if current_block_to_display < 0:
+                current_block_to_display = nr_of_blocks - 1
+
+        if event.key == pygame.K_RIGHT:
+            current_block_to_display += 1
+            if current_block_to_display >= nr_of_blocks:
+                current_block_to_display = 0
+
+    return current_block_to_display
+
+
+def handle_click_on_block(event: Event, rect: Rect):
+    rectangle_draging = True
+    mouse_x, mouse_y = event.pos
+
+    offset_x = rect.x - mouse_x
+    offset_y = rect.y - mouse_y
+
+    return rectangle_draging, offset_x, offset_y
+    
+
+
+def handle_block_in_motion(
     screen: Surface,
-    mouse_pos: tuple[int, int],
     event: Event,
-    rotation: int,
-    color,
-    board: Board,
-    current_player: Player,
-    current_block_to_display: int,
-    cell_size,
-    rectangle_draging = False
+    rect: Rect,
+    offset_x: int,
+    offset_y: int,
+    cell_size: int,
+    block: Block,
+) -> tuple[int, int]:
     
-):
-    
-        blocks = [block for block in BlockType]
-        block = Block(
-            blocks[current_block_to_display], cell_size, color, rotation
-        )
-        block_rects = block.get_rect()
+    mouse_x, mouse_y = event.pos
+    rect.x = (mouse_x + offset_x) - (mouse_x + offset_x) % cell_size
+    rect.y = (mouse_y + offset_y) - (mouse_y + offset_y) % cell_size
 
-        block.draw_block(screen=screen, x=250, y=650)
+    last_block_x = rect.x - rect.x % cell_size
+    last_block_y = rect.y - rect.y % cell_size
 
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT:
-                current_block_to_display -= 1
-                if current_block_to_display < 0:
-                    current_block_to_display = len(blocks) - 1
+    block.draw_block(screen, last_block_x, last_block_y)
 
-            if event.key == pygame.K_RIGHT:
-                current_block_to_display += 1
-                if current_block_to_display >= len(blocks):
-                    current_block_to_display = 0
-
-            block.draw_block(screen=screen, x=250, y=650)
-
-        for rect in block_rects:
-
-            rect.x = 250 + rect.x
-            rect.y = 650 + rect.y
-
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if rect.collidepoint(mouse_pos):
-
-                    rectangle_draging = True
-                    mouse_x, mouse_y = event.pos
-
-                    offset_x = rect.x - mouse_x
-                    offset_y = rect.y - mouse_y
-
-            elif event.type == pygame.MOUSEMOTION:
-                if rectangle_draging:
-                    mouse_x, mouse_y = event.pos
-                    rect.x = (mouse_x + offset_x) - (mouse_x + offset_x) % cell_size
-                    rect.y = (mouse_y + offset_y) - (mouse_y + offset_y) % cell_size
-
-                    last_block_x = rect.x
-                    last_block_y = rect.y
-
-                    block.draw_block(screen, last_block_x, last_block_y)
-
-            elif event.type == pygame.MOUSEBUTTONUP:
-
-                if rectangle_draging:
-                    last_block_x = last_block_x - last_block_x % cell_size
-                    last_block_y = last_block_y - last_block_y % cell_size
-
-                    if board.add_block(
-                        block, last_block_x, last_block_y, player=current_player
-                    ):
-                        current_player.has_moved = True
-                        current_player_number += 1
-                        if current_player_number > 3:
-                            current_player_number = 0
-
-                    rectangle_draging = False
-                    pygame.event.post(pygame.event.Event(pygame.NOEVENT))
+    return last_block_x, last_block_y
